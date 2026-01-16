@@ -1,13 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from '@/convex/_generated/api'
 import { DailyCelebrity } from '@/app/api/celebrities/route'
 import CelebrityCard from './CelebrityCard'
 import ChoiceSlot from './ChoiceSlot'
 import ResultsModal from './ResultsModal'
-import { getVisitorId } from '@/lib/visitorId'
 
 type ChoiceType = 'fuck' | 'marry' | 'kill'
 
@@ -24,24 +21,35 @@ interface GameBoardProps {
   theme?: string
 }
 
+// Local storage helpers
+function getStorageKey(date: string, gameMode: string) {
+  return `kmk-vote-${date}-${gameMode}`
+}
+
+function getSavedVote(date: string, gameMode: string) {
+  if (typeof window === 'undefined') return null
+  try {
+    const saved = localStorage.getItem(getStorageKey(date, gameMode))
+    return saved ? JSON.parse(saved) : null
+  } catch {
+    return null
+  }
+}
+
+function saveVote(date: string, gameMode: string, choices: { kiss: number; marry: number; kill: number }) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(getStorageKey(date, gameMode), JSON.stringify(choices))
+  } catch {
+    // Storage full or unavailable
+  }
+}
+
 export default function GameBoard({ celebrities, date, gameMode, theme }: GameBoardProps) {
   const [choices, setChoices] = useState<Choices>({ fuck: null, marry: null, kill: null })
   const [selectedCelebrity, setSelectedCelebrity] = useState<DailyCelebrity | null>(null)
   const [showResults, setShowResults] = useState(false)
-  const [visitorId, setVisitorId] = useState<string>('')
   const [hasSubmitted, setHasSubmitted] = useState(false)
-
-  // Convex queries and mutations
-  const submitVoteMutation = useMutation(api.votes.submitVote)
-  const stats = useQuery(api.votes.getStats, { date, gameMode })
-  const existingVote = useQuery(
-    api.votes.getUserVote,
-    visitorId ? { date, gameMode, visitorId } : 'skip'
-  )
-
-  useEffect(() => {
-    setVisitorId(getVisitorId())
-  }, [])
 
   // Reset choices when game mode or date changes
   useEffect(() => {
@@ -49,22 +57,23 @@ export default function GameBoard({ celebrities, date, gameMode, theme }: GameBo
     setSelectedCelebrity(null)
     setShowResults(false)
     setHasSubmitted(false)
-  }, [gameMode, date])
 
-  // Restore choices if user already voted
-  useEffect(() => {
-    if (existingVote && celebrities.length > 0) {
+    // Check for existing vote in local storage
+    const savedVote = getSavedVote(date, gameMode)
+    if (savedVote && celebrities.length > 0) {
       const restoredChoices: Choices = { fuck: null, marry: null, kill: null }
       celebrities.forEach(c => {
-        if (c.id === existingVote.kiss) restoredChoices.fuck = c
-        if (c.id === existingVote.marry) restoredChoices.marry = c
-        if (c.id === existingVote.destroy) restoredChoices.kill = c
+        if (c.id === savedVote.kiss) restoredChoices.fuck = c
+        if (c.id === savedVote.marry) restoredChoices.marry = c
+        if (c.id === savedVote.kill) restoredChoices.kill = c
       })
-      setChoices(restoredChoices)
-      setHasSubmitted(true)
-      setShowResults(true)
+      if (restoredChoices.fuck && restoredChoices.marry && restoredChoices.kill) {
+        setChoices(restoredChoices)
+        setHasSubmitted(true)
+        setShowResults(true)
+      }
     }
-  }, [existingVote, celebrities])
+  }, [gameMode, date, celebrities])
 
   const getCelebrityChoice = (celebrity: DailyCelebrity): ChoiceType | null => {
     if (choices.fuck?.id === celebrity.id) return 'fuck'
@@ -98,22 +107,17 @@ export default function GameBoard({ celebrities, date, gameMode, theme }: GameBo
   const isComplete = choices.fuck && choices.marry && choices.kill
 
   const handleSubmit = async () => {
-    if (!isComplete || !visitorId) return
+    if (!isComplete) return
 
-    try {
-      await submitVoteMutation({
-        date,
-        gameMode,
-        visitorId,
-        kiss: choices.fuck!.id,
-        marry: choices.marry!.id,
-        destroy: choices.kill!.id,
-      })
-      setHasSubmitted(true)
-      setShowResults(true)
-    } catch (error) {
-      console.error('Failed to submit vote:', error)
-    }
+    // Save to local storage
+    saveVote(date, gameMode, {
+      kiss: choices.fuck!.id,
+      marry: choices.marry!.id,
+      kill: choices.kill!.id,
+    })
+
+    setHasSubmitted(true)
+    setShowResults(true)
   }
 
   return (
@@ -230,7 +234,7 @@ export default function GameBoard({ celebrities, date, gameMode, theme }: GameBo
             marry: choices.marry,
             kill: choices.kill,
           }}
-          stats={stats}
+          stats={null}
           onClose={() => setShowResults(false)}
         />
       )}

@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import ConvexClientProvider from '@/components/ConvexClientProvider'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -43,7 +42,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-[100dvh] bg-[var(--bg-primary)] overflow-hidden">
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        {children}
       </body>
     </html>
   )
