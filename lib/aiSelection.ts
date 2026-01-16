@@ -18,7 +18,7 @@ export async function selectWithAI(
   }
 
   try {
-    const prompt = `You are selecting 3 celebrities for a "Kiss, Marry, Kill" game. The goal is to make the choice DIFFICULT and FUN for players.
+    const prompt = `You are selecting 3 celebrities for a "Kiss, Marry, Kill" game. Your goal is to make the choice DIFFICULT, FUNNY, or create an interesting dilemma.
 
 Today's date: ${date}
 Game mode: ${gameMode}
@@ -26,19 +26,24 @@ Game mode: ${gameMode}
 Available celebrities:
 ${candidates.map((c, i) => `${i + 1}. ${c.name} (Known for: ${c.knownFor})`).join('\n')}
 
-Select exactly 3 celebrities that would make for an interesting game. Consider:
-1. They could be similar in appeal (hard to choose between)
-2. They could have a funny connection (co-stars, rivals, same franchise)
-3. They could be from the same era or genre
-4. They could have contrasting personalities that make the choice interesting
+RULES:
+- ONLY select Western celebrities (Hollywood, American, British, European, Australian). NO Bollywood or Asian cinema actors.
+- The 3 must have a CONNECTION that makes the choice interesting:
+  * Co-stars from the same movie/show (e.g., the 3 leads from a love triangle)
+  * Same franchise (e.g., 3 Marvel heroes, 3 rom-com queens)
+  * Similar "type" that makes it hard to choose (e.g., 3 blonde action stars)
+  * Funny/awkward grouping (e.g., exes, rivals, lookalikes)
+  * Same era icons (e.g., 90s heartthrobs, 2000s pop stars)
 
-Respond with ONLY a JSON object in this exact format:
+DO NOT pick random unrelated celebrities. The fun is in the connection!
+
+Respond with ONLY a JSON object:
 {
   "selectedIndices": [1, 5, 8],
-  "theme": "A one-line witty description of why these 3 are grouped together"
+  "theme": "Witty theme explaining the connection (under 50 chars)"
 }
 
-The indices are 1-based from the list above. Make the theme fun and short (under 50 characters).`
+Indices are 1-based. Be creative and funny with the theme!`
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -47,7 +52,7 @@ The indices are 1-based from the list above. Make the theme fun and short (under
         'Authorization': `Bearer ${openaiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'user',
@@ -60,7 +65,8 @@ The indices are 1-based from the list above. Make the theme fun and short (under
     })
 
     if (!response.ok) {
-      console.error('OpenAI API error:', response.status)
+      const errorText = await response.text()
+      console.error('OpenAI API error:', response.status, errorText)
       return null
     }
 

@@ -51,7 +51,7 @@ export default function GameBoard({ celebrities, date, gameMode, theme }: GameBo
   const [showResults, setShowResults] = useState(false)
   const [hasSubmitted, setHasSubmitted] = useState(false)
 
-  // Reset choices when game mode or date changes
+  // Reset and check for existing vote when game mode or date changes
   useEffect(() => {
     setChoices({ fuck: null, marry: null, kill: null })
     setSelectedCelebrity(null)
@@ -70,7 +70,6 @@ export default function GameBoard({ celebrities, date, gameMode, theme }: GameBo
       if (restoredChoices.fuck && restoredChoices.marry && restoredChoices.kill) {
         setChoices(restoredChoices)
         setHasSubmitted(true)
-        setShowResults(true)
       }
     }
   }, [gameMode, date, celebrities])

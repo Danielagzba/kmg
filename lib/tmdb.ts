@@ -40,7 +40,7 @@ export async function fetchPopularPeople(page: number = 1): Promise<TMDBResponse
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      cache: 'no-store', // Disable cache for testing
     }
   )
 
@@ -73,8 +73,8 @@ export function getKnownFor(celebrity: Celebrity): string {
   return work.title || work.name || 'Actor/Actress'
 }
 
-// Fetch person details to get birthday
-export async function fetchPersonDetails(id: number): Promise<{ birthday: string | null }> {
+// Fetch person details to get birthday and place of birth
+export async function fetchPersonDetails(id: number): Promise<{ birthday: string | null; place_of_birth: string | null }> {
   const token = process.env.TMDB_API_TOKEN
   if (!token) throw new Error('TMDB_API_TOKEN is not set')
 
@@ -89,8 +89,59 @@ export async function fetchPersonDetails(id: number): Promise<{ birthday: string
     }
   )
 
-  if (!response.ok) return { birthday: null }
+  if (!response.ok) return { birthday: null, place_of_birth: null }
   return response.json()
+}
+
+// Check if place of birth is Western (US, UK, Canada, Australia, Europe)
+const WESTERN_COUNTRIES = [
+  'USA', 'United States', 'U.S.', 'America',
+  'UK', 'United Kingdom', 'England', 'Scotland', 'Wales', 'Ireland', 'Britain',
+  'Canada', 'Australia', 'New Zealand',
+  'France', 'Germany', 'Italy', 'Spain', 'Netherlands', 'Belgium', 'Sweden', 'Norway', 'Denmark', 'Finland',
+  'Austria', 'Switzerland', 'Portugal', 'Greece', 'Poland', 'Czech', 'Hungary',
+  'California', 'New York', 'Texas', 'Florida', 'Illinois', 'Pennsylvania', 'Ohio', 'Georgia', 'Michigan',
+  'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas',
+  'London', 'Paris', 'Berlin', 'Rome', 'Madrid', 'Sydney', 'Melbourne', 'Toronto', 'Vancouver'
+]
+
+export function isWesternCelebrity(placeOfBirth: string | null): boolean {
+  if (!placeOfBirth) return false // Require known birthplace
+  const place = placeOfBirth.toLowerCase()
+
+  // Explicitly exclude non-Western regions
+  const nonWestern = [
+    'india', 'mumbai', 'delhi', 'chennai', 'kolkata', 'bangalore', 'hyderabad', 'pune',
+    'china', 'beijing', 'shanghai', 'hong kong',
+    'korea', 'seoul', 'busan',
+    'japan', 'tokyo', 'osaka',
+    'thailand', 'bangkok',
+    'philippines', 'manila',
+    'indonesia', 'jakarta',
+    'vietnam', 'hanoi',
+    'pakistan', 'karachi', 'lahore',
+    'bangladesh', 'dhaka',
+    'malaysia', 'singapore',
+    'taiwan', 'taipei',
+    'nigeria', 'lagos',
+    'brazil', 'mexico', 'argentina' // Focus on English-speaking Western
+  ]
+  if (nonWestern.some(region => place.includes(region))) return false
+
+  // Must contain a Western location
+  const western = [
+    'usa', 'united states', 'u.s.', 'america',
+    'uk', 'united kingdom', 'england', 'scotland', 'wales', 'ireland', 'britain', 'british',
+    'canada', 'australia', 'new zealand',
+    'california', 'new york', 'texas', 'florida', 'illinois', 'pennsylvania', 'ohio', 'georgia', 'michigan',
+    'new jersey', 'massachusetts', 'washington', 'arizona', 'colorado', 'tennessee', 'north carolina',
+    'los angeles', 'chicago', 'houston', 'phoenix', 'philadelphia', 'san antonio', 'san diego', 'dallas',
+    'brooklyn', 'manhattan', 'queens', 'bronx', 'hollywood', 'beverly hills', 'santa monica',
+    'london', 'manchester', 'birmingham', 'liverpool', 'glasgow', 'edinburgh', 'dublin', 'belfast',
+    'sydney', 'melbourne', 'brisbane', 'perth', 'auckland',
+    'toronto', 'vancouver', 'montreal', 'calgary'
+  ]
+  return western.some(region => place.includes(region))
 }
 
 // Calculate age from birthday

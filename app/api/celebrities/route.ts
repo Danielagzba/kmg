@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-import { fetchMultiplePages, filterWithPhotos, getKnownFor, getImageUrl, Celebrity, fetchPersonDetails, calculateAge } from '@/lib/tmdb'
+import { fetchMultiplePages, filterWithPhotos, getKnownFor, getImageUrl, Celebrity, fetchPersonDetails, calculateAge, isWesternCelebrity } from '@/lib/tmdb'
 import { getSeededRandom, seededSelect, getTodaysSeed } from '@/lib/seededRandom'
 import { selectWithAI } from '@/lib/aiSelection'
 
@@ -29,31 +29,34 @@ export async function GET(request: Request) {
     const targetGender = gameMode === 'women' ? 1 : 2
 
     // Fetch from multiple pages to get a good pool
-    const allCelebrities = await fetchMultiplePages([1, 2, 3, 4, 5, 6, 7, 8])
+    const allCelebrities = await fetchMultiplePages([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 
     // Filter to only those with photos and matching gender
     const filtered = filterWithPhotos(allCelebrities).filter(c => c.gender === targetGender)
 
-    // Use seeded random to select candidates (more than needed to account for age filtering)
-    const random = getSeededRandom(date + '-' + gameMode + '-v3')
-    const candidates = seededSelect(filtered, 30, random)
+    // Use seeded random to select candidates (more than needed to account for Western filtering)
+    const random = getSeededRandom(date + '-' + gameMode + '-v5')
+    const candidates = seededSelect(filtered, 50, random)
 
-    // Check ages and filter to 18+ only
-    const adultsOnly: Celebrity[] = []
+    // Check ages and filter to 20-45 Western celebrities only
+    const eligibleCelebrities: Celebrity[] = []
     for (const candidate of candidates) {
-      if (adultsOnly.length >= 15) break // Get more than needed for AI selection
+      if (eligibleCelebrities.length >= 15) break // Get more than needed for AI selection
 
       const details = await fetchPersonDetails(candidate.id)
       const age = calculateAge(details.birthday)
 
-      // Include if 18+ or if age unknown (most popular actors are adults)
-      if (age === null || age >= 18) {
-        adultsOnly.push(candidate)
+      // Include if age 20-45 AND Western (skip if age unknown)
+      const isTargetAge = age !== null && age >= 20 && age <= 45
+      const isWestern = isWesternCelebrity(details.place_of_birth)
+
+      if (isTargetAge && isWestern) {
+        eligibleCelebrities.push(candidate)
       }
     }
 
     // Transform to response format for AI selection
-    const candidatesForAI = adultsOnly.map((c: Celebrity) => ({
+    const candidatesForAI = eligibleCelebrities.map((c: Celebrity) => ({
       id: c.id,
       name: c.name,
       imageUrl: getImageUrl(c.profile_path, 'w342'),
