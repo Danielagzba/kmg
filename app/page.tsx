@@ -1,12 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import GameBoard from '@/components/GameBoard'
 import { DailyCelebrity, DailyCelebritiesResponse } from '@/app/api/celebrities/route'
 import { decodeChoices } from '@/lib/storage'
 
-export default function Home() {
+function LoadingScreen() {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white mb-4" />
+        <p className="text-neutral-500 text-sm">Loading</p>
+      </div>
+    </main>
+  )
+}
+
+function HomeContent() {
   const searchParams = useSearchParams()
   const [celebrities, setCelebrities] = useState<DailyCelebrity[] | null>(null)
   const [date, setDate] = useState<string>('')
@@ -50,14 +61,7 @@ export default function Home() {
   }, [searchParams])
 
   if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-white mb-4" />
-          <p className="text-neutral-500 text-sm">Loading</p>
-        </div>
-      </main>
-    )
+    return <LoadingScreen />
   }
 
   if (error) {
@@ -127,5 +131,13 @@ export default function Home() {
         </p>
       </footer>
     </main>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <HomeContent />
+    </Suspense>
   )
 }

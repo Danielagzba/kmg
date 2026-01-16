@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { fetchMultiplePages, filterWithPhotos, getKnownFor, getImageUrl, Celebrity, fetchPersonDetails, calculateAge } from '@/lib/tmdb'
 import { getSeededRandom, seededSelect, getTodaysSeed } from '@/lib/seededRandom'
 
