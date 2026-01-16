@@ -35,10 +35,10 @@ export async function GET(request: Request) {
     const filtered = filterWithPhotos(allCelebrities).filter(c => c.gender === targetGender)
 
     // Use seeded random to select candidates (more than needed to account for Western filtering)
-    const random = getSeededRandom(date + '-' + gameMode + '-v5')
+    const random = getSeededRandom(date + '-' + gameMode + '-v6')
     const candidates = seededSelect(filtered, 50, random)
 
-    // Check ages and filter to 20-45 Western celebrities only
+    // Check ages and filter to 20-60 Western celebrities only
     const eligibleCelebrities: Celebrity[] = []
     for (const candidate of candidates) {
       if (eligibleCelebrities.length >= 15) break // Get more than needed for AI selection
@@ -46,8 +46,8 @@ export async function GET(request: Request) {
       const details = await fetchPersonDetails(candidate.id)
       const age = calculateAge(details.birthday)
 
-      // Include if age 20-45 AND Western (skip if age unknown)
-      const isTargetAge = age !== null && age >= 20 && age <= 45
+      // Include if age 20-60 AND Western (skip if age unknown)
+      const isTargetAge = age !== null && age >= 20 && age <= 60
       const isWestern = isWesternCelebrity(details.place_of_birth)
 
       if (isTargetAge && isWestern) {
