@@ -3,55 +3,47 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { DailyCelebrity } from '@/app/api/celebrities/route'
-import { encodeChoices, GameResult } from '@/lib/storage'
+
+interface StatsData {
+  totalVotes: number
+  stats: Record<number, { kiss: number; marry: number; destroy: number }>
+}
 
 interface ResultsModalProps {
   date: string
+  gameMode: 'women' | 'men'
   choices: {
     fuck: DailyCelebrity
     marry: DailyCelebrity
     kill: DailyCelebrity
   }
+  stats?: StatsData | null
   onClose: () => void
 }
 
-export default function ResultsModal({ date, choices, onClose }: ResultsModalProps) {
+export default function ResultsModal({ date, gameMode, choices, stats, onClose }: ResultsModalProps) {
   const [copied, setCopied] = useState(false)
 
   const handleShare = async () => {
-    const result: GameResult = {
-      date,
-      choices: {
-        fuck: choices.fuck.id,
-        marry: choices.marry.id,
-        kill: choices.kill.id,
-      },
-      celebrities: [choices.fuck, choices.marry, choices.kill].map(c => ({
-        id: c.id,
-        name: c.name,
-      })),
-    }
-
-    const encoded = encodeChoices(result)
-    const shareUrl = `${window.location.origin}?share=${encoded}`
-
-    const shareText = `Kiss, Marry, Goodbye - ${new Date(date).toLocaleDateString()}
+    const shareText = `Kiss, Marry, Kill - ${new Date(date).toLocaleDateString()}
 
 Kiss: ${choices.fuck.name}
 Marry: ${choices.marry.name}
-Goodbye: ${choices.kill.name}
+Kill: ${choices.kill.name}
 
 Play today's challenge:`
+
+    const shareUrl = `${window.location.origin}?mode=${gameMode}`
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Kiss, Marry, Goodbye',
+          title: 'Kiss, Marry, Kill',
           text: shareText,
           url: shareUrl,
         })
         return
-      } catch (e) {
+      } catch {
         // Fall back to clipboard
       }
     }
@@ -65,46 +57,80 @@ Play today's challenge:`
     }
   }
 
+  const getPercentage = (celebrityId: number, type: 'kiss' | 'marry' | 'destroy'): number => {
+    if (!stats || stats.totalVotes === 0) return 0
+    const celebrityStats = stats.stats[celebrityId]
+    if (!celebrityStats) return 0
+    return Math.round((celebrityStats[type] / stats.totalVotes) * 100)
+  }
+
   const ResultRow = ({
     type,
     label,
+    statKey,
     celebrity,
     color,
   }: {
     type: string
     label: string
+    statKey: 'kiss' | 'marry' | 'destroy'
     celebrity: DailyCelebrity
     color: string
-  }) => (
-    <div className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm text-white ${color}`}>
-        {type}
+  }) => {
+    const percentage = getPercentage(celebrity.id, statKey)
+
+    return (
+      <div className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-secondary)]">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs text-[var(--bg-primary)]"
+            style={{ backgroundColor: color }}
+          >
+            {type}
+          </div>
+          <div className="relative w-10 h-10 rounded-full overflow-hidden ring-2 ring-[var(--border-primary)]">
+            <Image
+              src={celebrity.imageUrl}
+              alt={celebrity.name}
+              fill
+              className="object-cover"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-[var(--text-primary)] text-sm truncate">{celebrity.name}</p>
+            <p className="text-xs text-[var(--text-muted)] truncate">{celebrity.knownFor}</p>
+          </div>
+          <span className="text-[10px] text-[var(--text-faint)] font-medium uppercase tracking-wider">
+            {label}
+          </span>
+        </div>
+
+        {/* Stats bar */}
+        {stats && stats.totalVotes > 0 && (
+          <div className="mt-2.5 pt-2.5 border-t border-[var(--border-secondary)]">
+            <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] mb-1">
+              <span>Others who chose {label}</span>
+              <span className="text-[var(--text-primary)] font-medium">{percentage}%</span>
+            </div>
+            <div className="h-1.5 bg-[var(--border-primary)] rounded-full overflow-hidden">
+              <div
+                className="h-full transition-all duration-500 rounded-full"
+                style={{ width: `${percentage}%`, backgroundColor: color }}
+              />
+            </div>
+          </div>
+        )}
       </div>
-      <div className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/10">
-        <Image
-          src={celebrity.imageUrl}
-          alt={celebrity.name}
-          fill
-          className="object-cover"
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-white truncate">{celebrity.name}</p>
-        <p className="text-sm text-neutral-500 truncate">{celebrity.knownFor}</p>
-      </div>
-      <span className="text-xs text-neutral-600 font-medium uppercase tracking-wider">
-        {label}
-      </span>
-    </div>
-  )
+    )
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-[#0a0a0a] border border-white/[0.08] rounded-3xl max-w-md w-full p-6 relative">
+    <div className="fixed inset-0 bg-[var(--bg-overlay)] backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-2xl max-w-sm w-full p-5 relative max-h-[85vh] overflow-y-auto shadow-[var(--shadow-lg)]">
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-neutral-500 hover:text-white transition-colors"
+          className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -112,28 +138,51 @@ Play today's challenge:`
         </button>
 
         {/* Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">Your choices</h2>
-          <p className="text-neutral-500 text-sm">
+        <div className="text-center mb-5">
+          <h2 className="font-display text-xl font-semibold text-[var(--text-primary)] mb-1">Your choices</h2>
+          <p className="text-[var(--text-muted)] text-xs">
             {new Date(date).toLocaleDateString('en-US', {
               weekday: 'long',
               month: 'long',
               day: 'numeric',
             })}
           </p>
+          {stats && stats.totalVotes > 0 && (
+            <p className="text-[var(--text-faint)] text-[10px] mt-1">
+              {stats.totalVotes.toLocaleString()} {stats.totalVotes === 1 ? 'person has' : 'people have'} played
+            </p>
+          )}
         </div>
 
         {/* Results */}
-        <div className="space-y-3 mb-8">
-          <ResultRow type="K" label="Kiss" celebrity={choices.fuck} color="bg-pink-500" />
-          <ResultRow type="M" label="Marry" celebrity={choices.marry} color="bg-purple-500" />
-          <ResultRow type="G" label="Goodbye" celebrity={choices.kill} color="bg-red-500" />
+        <div className="space-y-2.5 mb-5">
+          <ResultRow
+            type="K"
+            label="Kiss"
+            statKey="kiss"
+            celebrity={choices.fuck}
+            color="var(--accent-kiss)"
+          />
+          <ResultRow
+            type="M"
+            label="Marry"
+            statKey="marry"
+            celebrity={choices.marry}
+            color="var(--accent-marry)"
+          />
+          <ResultRow
+            type="K"
+            label="Kill"
+            statKey="destroy"
+            celebrity={choices.kill}
+            color="var(--accent-destroy)"
+          />
         </div>
 
         {/* Share button */}
         <button
           onClick={handleShare}
-          className="w-full py-3.5 rounded-full font-medium text-sm tracking-wide bg-white text-black hover:bg-neutral-200 active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-full font-medium text-sm tracking-wide bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90 active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 shadow-sm"
         >
           {copied ? (
             <>
@@ -153,7 +202,7 @@ Play today's challenge:`
         </button>
 
         {/* Footer */}
-        <p className="text-center text-neutral-600 text-xs mt-6">
+        <p className="text-center text-[var(--text-faint)] text-[10px] mt-4">
           New faces tomorrow
         </p>
       </div>

@@ -4,16 +4,62 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Light theme (default) - Deep Blue */
 :root {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --muted: #737373;
-  --card: #141414;
-  --card-hover: #1a1a1a;
-  --border: #262626;
-  --accent-pink: #ec4899;
-  --accent-purple: #a855f7;
-  --accent-red: #ef4444;
+  --bg-primary: #F4F7FB;
+  --bg-secondary: #E1E8F3;
+  --bg-card: #E1E8F3;
+  --bg-card-hover: #d4dded;
+  --bg-overlay: rgba(244, 247, 251, 0.95);
+
+  --text-primary: #2F4A75;
+  --text-secondary: #7A90B2;
+  --text-muted: #7A90B2;
+  --text-faint: #BCCAE0;
+
+  --border-primary: #BCCAE0;
+  --border-secondary: rgba(188, 202, 224, 0.5);
+
+  --accent-kiss: #0F2A4D;
+  --accent-marry: #2F4A75;
+  --accent-destroy: #7A90B2;
+
+  --shadow-sm: 0 1px 2px rgba(15, 42, 77, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 42, 77, 0.1);
+  --shadow-lg: 0 8px 24px rgba(15, 42, 77, 0.15);
+
+  --gradient-kiss: linear-gradient(135deg, rgba(15, 42, 77, 0.1), rgba(15, 42, 77, 0.02));
+  --gradient-marry: linear-gradient(135deg, rgba(47, 74, 117, 0.1), rgba(47, 74, 117, 0.02));
+  --gradient-destroy: linear-gradient(135deg, rgba(122, 144, 178, 0.1), rgba(122, 144, 178, 0.02));
+}
+
+/* Dark theme - Deep Blue */
+[data-theme="dark"] {
+  --bg-primary: #0F2A4D;
+  --bg-secondary: #1a3a5c;
+  --bg-card: #1a3a5c;
+  --bg-card-hover: #254a6e;
+  --bg-overlay: rgba(15, 42, 77, 0.95);
+
+  --text-primary: #F4F7FB;
+  --text-secondary: #BCCAE0;
+  --text-muted: #7A90B2;
+  --text-faint: #4a6080;
+
+  --border-primary: rgba(188, 202, 224, 0.2);
+  --border-secondary: rgba(188, 202, 224, 0.1);
+
+  --accent-kiss: #F4F7FB;
+  --accent-marry: #BCCAE0;
+  --accent-destroy: #7A90B2;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  --gradient-kiss: linear-gradient(135deg, rgba(244, 247, 251, 0.1), rgba(244, 247, 251, 0.02));
+  --gradient-marry: linear-gradient(135deg, rgba(188, 202, 224, 0.1), rgba(188, 202, 224, 0.02));
+  --gradient-destroy: linear-gradient(135deg, rgba(122, 144, 178, 0.1), rgba(122, 144, 178, 0.02));
 }
 
 * {
@@ -22,20 +68,93 @@
 
 html {
   scroll-behavior: smooth;
+  height: 100%;
+  height: -webkit-fill-available;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--text-primary);
+  background: var(--bg-primary);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Heading font - sans-serif */
+.font-display {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
 
 /* Custom selection */
 ::selection {
-  background: var(--accent-purple);
-  color: white;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+/* Smooth theme transition for all elements */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+/* Disable transition for certain elements */
+.no-transition,
+.no-transition *,
+button:active,
+button:active * {
+  transition-duration: 0s !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-faint);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Subtle texture overlay for depth */
+.texture-overlay {
+  position: relative;
+}
+
+.texture-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+[data-theme="dark"] .texture-overlay::before {
+  opacity: 0.03;
 }
